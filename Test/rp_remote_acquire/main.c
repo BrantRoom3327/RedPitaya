@@ -39,6 +39,8 @@
 #include "scope.h"
 #include "transfer.h"
 
+#include "redpitaya/rp.h"
+
 /******************************************************************************
  * Defines
  ******************************************************************************/
@@ -96,6 +98,20 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+//brant added
+
+	if(rp_Init() != RP_OK){
+	    fprintf(stderr, "Rp api init failed!\n");
+	}
+
+	//ch1
+	rp_GenWaveform(RP_CH_1, RP_WAVEFORM_SINE);
+        rp_GenAmp(RP_CH_1, 1.0);
+        rp_GenFreq(RP_CH_1, 1000000.0);
+        rp_GenOutEnable(RP_CH_1);
+
+//brant end
+
 	signal_init();
 
 	if (scope_init(&param, &g_options)) {
@@ -142,6 +158,10 @@ cleanup_scope:
 	scope_cleanup(&param, &g_options);
 cleanup:
 	signal_exit();
+
+//brant
+	rp_Release();
+//brant
 
 	return retval;
 }

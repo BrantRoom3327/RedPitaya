@@ -19,13 +19,17 @@ TARGET=rp_remote_acquire
 
 # GCC compiling & linking flags
 CFLAGS=-std=gnu99 -O2 -Wall -Werror
+CFLAGS += -I/opt/redpitaya/include
+
+LDFLAGS = -L/opt/redpitaya/lib
 
 # Additional libraries which needs to be dynamically linked to the executable
 # -lm - System math library (used by cos(), sin(), sqrt(), ... functions)
-LIBS=-lpthread
+LIBS=-lpthread -lm -lrp
 
 # Main GCC executable (used for compiling and linking)
 CC=$(CROSS_COMPILE)gcc
+
 # Installation directory
 INSTALL_DIR ?= .
 
@@ -55,7 +59,7 @@ all: $(TARGET)
 # Makefile target with rules how to link executable for each target from $(TARGET)
 # list.
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ $(LIBS) $(LDFLAGS)
 
 # Clean target - when called it cleans all object files and executables.
 clean:
