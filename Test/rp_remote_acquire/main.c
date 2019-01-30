@@ -34,10 +34,12 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "options.h"
 #include "scope.h"
 #include "transfer.h"
+#include "asg.h"
 
 #include "redpitaya/rp.h"
 
@@ -91,6 +93,7 @@ int main(int argc, char **argv)
 			.file2 = NULL,
 	};
 	struct scope_parameter param;
+	struct asg_parameter param_asg;
 
 	if(0 != handle_options(argc,argv, &g_options))
 	{
@@ -98,23 +101,16 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-//brant added
-
-	if(rp_Init() != RP_OK){
-	    fprintf(stderr, "Rp api init failed!\n");
-	}
-
-	//ch1
-	rp_GenWaveform(RP_CH_1, RP_WAVEFORM_SINE);
-        rp_GenAmp(RP_CH_1, 1.0);
-        rp_GenFreq(RP_CH_1, 1000000.0);
-        rp_GenOutEnable(RP_CH_1);
-
-//brant end
-
 	signal_init();
 
 	if (scope_init(&param, &g_options)) {
+		retval = 2;
+		goto cleanup;
+	}
+// use the dev/mem fd used by scope init
+	param_asg.fd = param.scope_fd; 
+
+	if (asg_init(&param_asg, &g_options)) {
 		retval = 2;
 		goto cleanup;
 	}
@@ -138,6 +134,7 @@ int main(int argc, char **argv)
 				fprintf(stderr, "%s: problem opening connection.\n", __func__);
 				continue;
 			}
+			printf("start a connection success\n");
 		}
 
 		retval = transfer_data(&param, &g_options, &handles);
@@ -159,9 +156,7 @@ cleanup_scope:
 cleanup:
 	signal_exit();
 
-//brant
-	rp_Release();
-//brant
+    asg_cleanup(&param_asg, &g_options);
 
 	return retval;
 }
