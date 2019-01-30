@@ -67,8 +67,8 @@ int asg_init(struct asg_parameter *param, option_fields_t *options)
 {
     memset(param, 0, sizeof(*param));
 
-//	param->fd = open("/dev/mem", O_RDWR);
-	// assume we are using the already open param->fd from scope_init
+	param->fd = open("/dev/mem", O_RDWR);
+
 	if (param->fd < 0) {
 		fprintf(stderr, "open asg failed, %d\n", errno);
 		return -1;
@@ -119,7 +119,7 @@ void asg_start(struct asg_parameter *param)
      asg_register_dump(param);
 	// for 0x04 the amplitude offset is set to 7, not sure why yet.
 
-	///need the full value set here so we can control the triggering and all the other things.
+	//these values don't appear to stick with the ddrdump.bit FPGA firmware.
     *(uint32_t *)(param->mapped_io + 0x00000) = 0x11;
     *(uint32_t *)(param->mapped_io + 0x00004) = 0xD1FFF;
     *(uint32_t *)(param->mapped_io + 0x00008) = 0x3fffffff; //wrap at max value
@@ -132,16 +132,17 @@ void asg_start(struct asg_parameter *param)
 
      asg_register_dump(param);
 
-	//generate a waveform and put it into memory, read it back to confirm it matches...
+	//generate a waveform and put it into memory, 
+    //this does not appear to be working with the ddrdump.bit firmware, unsure if
+    // that firmware has removed the ASG or altered it
     for (int i=0x10000, j=0; i <= 0x1FFFC; i+=4, j++) {
-        //*(uint32_t *)(param->mapped_io + i) = sine[j];
-        *(uint32_t *)(param->mapped_io + i) = 1;
+        *(float*)(param->mapped_io + i) = sine[j];
     }
 
     //read it back and diff it
 	for (int i=0x10000, j=0; i <= 0x1FFFC; i+=4, j++) {
         if (*(float *)(param->mapped_io + i) != sine[j])
-            printf("Failed to read back sine wave at index %d val %f\n", j, *(float *)(param->mapped_io + i));
+            printf("Failed read back sine index: %d val %f\n", j, *(float *)(param->mapped_io + i));
     }
 
 	asg_dump_sample_memory(param);

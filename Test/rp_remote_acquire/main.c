@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 		goto cleanup;
 	}
 // use the dev/mem fd used by scope init
-	param_asg.fd = param.scope_fd; 
+	//param_asg.fd = param.scope_fd; 
 
 	if (asg_init(&param_asg, &g_options)) {
 		retval = 2;
