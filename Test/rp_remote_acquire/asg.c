@@ -37,6 +37,8 @@
 
 #include "options.h"
 #include "asg.h"
+#include "fpga_awg.h"
+#include "redpitaya/version.h"
 
 #define BUFFER_LENGTH 16384
 
@@ -63,6 +65,7 @@ void synthesize_sine(float *data_out)
     }
 }
 
+#define ASG_FPGA_REGISTER_MAP_SIZE 0x30000
 int asg_init(struct asg_parameter *param, option_fields_t *options)
 {
     memset(param, 0, sizeof(*param));
@@ -74,8 +77,8 @@ int asg_init(struct asg_parameter *param, option_fields_t *options)
 		return -1;
 	}
 
-    //asg memory area
-	param->mapped_io = mmap(NULL, 0x00100000UL, PROT_WRITE | PROT_READ, MAP_SHARED, param->fd, 0x40200000UL);
+    //asg memory area, its only 0x30000 in size
+	param->mapped_io = mmap(NULL, ASG_FPGA_REGISTER_MAP_SIZE, PROT_WRITE | PROT_READ, MAP_SHARED, param->fd, 0x40200000UL);
 	if (param->mapped_io == MAP_FAILED) {
 		fprintf(stderr, "mmap scope io failed (non-fatal), %d\n", errno);
 		param->mapped_io = NULL;
@@ -94,9 +97,8 @@ out:
 
 void asg_cleanup(struct asg_parameter *param, option_fields_t *options)
 {
-    printf("asg_cleanup\n");
 	if (param->mapped_io) {
-		munmap(param->mapped_io, 0x00100000UL);
+		munmap(param->mapped_io, ASG_FPGA_REGISTER_MAP_SIZE);
 	}
 
 	if (param->mapped_buf_a)
@@ -120,8 +122,8 @@ void asg_start(struct asg_parameter *param)
 	// for 0x04 the amplitude offset is set to 7, not sure why yet.
 
 	//these values don't appear to stick with the ddrdump.bit FPGA firmware.
-    *(uint32_t *)(param->mapped_io + 0x00000) = 0x11;
-    *(uint32_t *)(param->mapped_io + 0x00004) = 0xD1FFF;
+    *(uint32_t *)(param->mapped_io + 0x00000) = 0x41;  //state machine reset, trigger immediately
+    *(uint32_t *)(param->mapped_io + 0x00004) = 0x1FFF;  //no amplitude offset, should there be one?
     *(uint32_t *)(param->mapped_io + 0x00008) = 0x3fffffff; //wrap at max value
     *(uint32_t *)(param->mapped_io + 0x0000C) = 0;  //offset when trigger arrives
     *(uint32_t *)(param->mapped_io + 0x00010) = 0;
